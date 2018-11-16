@@ -174,15 +174,73 @@ StatusCode MasterAlgorithm::Run()
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->StitchCosmicRayPfos(pfoToLArTPCMap, stitchedPfosToX0Map));
     }
 
+    /* BEGIN TEST */
+    PfoList testClearCosmicRayPfos;
+    /* BEGIN TEST */
+
     if (m_shouldRunCosmicHitRemoval)
     {
         PfoList clearCosmicRayPfos, ambiguousPfos;
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->TagCosmicRayPfos(stitchedPfosToX0Map, clearCosmicRayPfos, ambiguousPfos));
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RunCosmicRayHitRemoval(ambiguousPfos));
+
+        /* BEGIN TEST */
+        testClearCosmicRayPfos = clearCosmicRayPfos;
+        /* BEGIN TEST */
     }
 
     SliceVector sliceVector;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->RunSlicing(volumeIdToHitListMap, sliceVector));
+
+    /* BEGIN TEST */
+    const unsigned int nRecobSlices(sliceVector.size() + testClearCosmicRayPfos.size());
+    std::cout << "TEST - # recob slices = " << nRecobSlices << std::endl;
+
+    unsigned int nHitsFromPandoraSlices(0);
+    unsigned int sliceIndex(0);
+    for (auto slice : sliceVector)
+    {
+        std::cout << "TEST - Slice " << sliceIndex << " : " << slice.size() << std::endl;
+        nHitsFromPandoraSlices += slice.size();
+
+        slice.sort([](const CaloHit *const a, const CaloHit *const b){
+            return a->GetInputEnergy() < b->GetInputEnergy();
+        });
+
+        for (const auto &hit : slice)
+            std::cout << "TEST -     " << hit->GetInputEnergy() << std::endl;
+
+        ++sliceIndex;
+    }
+        
+    std::cout << "----------------------" << std::endl;
+
+    testClearCosmicRayPfos.sort(LArPfoHelper::SortByNHits);
+    for (const auto &clearCosmic : testClearCosmicRayPfos)
+    {
+        PfoList connectedPfos;
+        LArPfoHelper::GetAllConnectedPfos(clearCosmic, connectedPfos);
+
+        CaloHitList hits;
+        LArPfoHelper::GetCaloHits(connectedPfos, TPC_VIEW_U, hits);
+        LArPfoHelper::GetCaloHits(connectedPfos, TPC_VIEW_V, hits);
+        LArPfoHelper::GetCaloHits(connectedPfos, TPC_VIEW_W, hits);
+        LArPfoHelper::GetIsolatedCaloHits(connectedPfos, TPC_VIEW_U, hits);
+        LArPfoHelper::GetIsolatedCaloHits(connectedPfos, TPC_VIEW_V, hits);
+        LArPfoHelper::GetIsolatedCaloHits(connectedPfos, TPC_VIEW_W, hits);
+
+        std::cout << "TEST - Slice " << sliceIndex << " : " << hits.size() << std::endl;
+        
+        hits.sort([](const CaloHit *const a, const CaloHit *const b){
+            return a->GetInputEnergy() < b->GetInputEnergy();
+        });
+        
+        for (const auto &hit : hits)
+            std::cout << "TEST -     " << hit->GetInputEnergy() << std::endl;
+
+        ++sliceIndex;
+    }
+    /* END TEST */
 
     if (m_shouldRunNeutrinoRecoOption || m_shouldRunCosmicRecoOption)
     {
