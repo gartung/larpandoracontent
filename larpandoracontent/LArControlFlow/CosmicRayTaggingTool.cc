@@ -44,6 +44,30 @@ CosmicRayTaggingTool::CosmicRayTaggingTool() :
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+CosmicRayTaggingTool::~CosmicRayTaggingTool()
+{
+    // Save the metadata about cut values used
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "min3DHits", static_cast<int>(m_minimumHits)));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "inTimeMargin", m_inTimeMargin));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "marginY", m_marginY));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "marginZ", m_marginZ));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "maxNeutrinoCosTheta", m_maxNeutrinoCosTheta));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "minCosmicCosTheta", m_minCosmicCosTheta));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "maxCosmicCurvature", m_maxCosmicCurvature));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "face_Xa", m_face_Xa));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "face_Xc", m_face_Xc));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "face_Yb", m_face_Yb));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "face_Yt", m_face_Yt));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "face_Zu", m_face_Zu));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "face_Zd", m_face_Zd));
+    PANDORA_MONITORING_API(FillTree(this->GetPandora(), "metadata"));
+    
+    PANDORA_MONITORING_API(SaveTree(this->GetPandora(), "metadata", "CRValidation.root", "UPDATE"));
+    
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 StatusCode CosmicRayTaggingTool::Initialize()
 {
     if ("nominal" == m_cutMode)

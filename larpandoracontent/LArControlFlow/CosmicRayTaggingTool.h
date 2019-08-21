@@ -12,6 +12,10 @@
 
 #include "larpandoracontent/LArObjects/LArThreeDSlidingFitResult.h"
 
+#ifdef MONITORING
+#include "PandoraMonitoringApi.h"
+#endif
+
 #include <unordered_map>
 
 namespace lar_content
@@ -28,6 +32,7 @@ public:
      */
     CosmicRayTaggingTool();
 
+    ~CosmicRayTaggingTool();
     pandora::StatusCode Initialize();
     void FindAmbiguousPfos(const pandora::PfoList &parentCosmicRayPfos, pandora::PfoList &ambiguousPfos, const MasterAlgorithm *const pAlgorithm);
 
