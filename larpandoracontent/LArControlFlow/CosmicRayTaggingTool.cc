@@ -53,7 +53,7 @@ CosmicRayTaggingTool::~CosmicRayTaggingTool()
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "marginZ", m_marginZ));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "maxNeutrinoCosTheta", m_maxNeutrinoCosTheta));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "minCosmicCosTheta", m_minCosmicCosTheta));
-    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "maxCosmicCurvature", m_maxCosmicCurvature));
+    PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "maxCosmicAngularDeviation", m_maxCosmicCurvature));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "face_Xa", m_face_Xa));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "face_Xc", m_face_Xc));
     PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "metadata", "face_Yb", m_face_Yb));
@@ -63,7 +63,7 @@ CosmicRayTaggingTool::~CosmicRayTaggingTool()
     PANDORA_MONITORING_API(FillTree(this->GetPandora(), "metadata"));
     
     PANDORA_MONITORING_API(SaveTree(this->GetPandora(), "metadata", "CRValidation.root", "UPDATE"));
-    
+    PANDORA_MONITORING_API(SaveTree(this->GetPandora(), "pfos", "CRValidation.root", "UPDATE"));
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -158,6 +158,48 @@ void CosmicRayTaggingTool::FindAmbiguousPfos(const PfoList &parentCosmicRayPfos,
         if (!pfoToIsLikelyCRMuonMap.at(pPfo))
             ambiguousPfos.push_back(pPfo);
     }
+    
+    /* BEGIN MONITORING */
+    for (const auto &candidate : candidates)
+    {
+        // NB. Pandora's monitoring API doesn't have option for bool! So here we cast to int
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "canFit", static_cast<int>(candidate.m_canFit)));
+
+        const auto upper(candidate.m_endPoint1.GetY() > candidate.m_endPoint2.GetY() ? candidate.m_endPoint1 : candidate.m_endPoint2);
+        const auto lower(candidate.m_endPoint1.GetY() > candidate.m_endPoint2.GetY() ? candidate.m_endPoint2 : candidate.m_endPoint1);
+
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "upperX", upper.GetX()));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "upperY", upper.GetY()));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "upperZ", upper.GetZ()));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "lowerX", lower.GetX()));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "lowerY", lower.GetY()));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "lowerZ", lower.GetZ()));
+        
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "length", candidate.m_length));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "angularDeviation", candidate.m_curvature));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "cosTheta", candidate.m_theta));
+        
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "cut_inTime", static_cast<int>(pfoToInTimeMap.at(candidate.m_pPfo))));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "cut_containedFiducial", static_cast<int>(candidate.m_canFit && pfoToIsContainedMap.at(candidate.m_pPfo))));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "cut_topToBottom", static_cast<int>(candidate.m_canFit && pfoToIsTopToBottomMap.at(candidate.m_pPfo))));
+        
+        // ATTN this is a copy of the logic used to identify likely neutrinos. I haven't refactored for the sake of speed given this is just validation code
+        const bool likelyNeutrino(candidate.m_canFit && pfoToInTimeMap.at(candidate.m_pPfo) && (candidate.m_theta < m_maxNeutrinoCosTheta || pfoToIsContainedMap.at(candidate.m_pPfo)));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "cut_likelyNeutrino", static_cast<int>(likelyNeutrino)));
+
+        const bool isProtected(neutrinoSliceSet.find(candidate.m_sliceId) != neutrinoSliceSet.end());
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "cut_protected", static_cast<int>(isProtected)));
+        
+        // ATTN this is a copy of the logic used to identify cosmics by topology. I haven't refactored for the sake of speed given this is just validation code
+        const bool likelyCRTopology(candidate.m_canFit && candidate.m_theta > m_minCosmicCosTheta && candidate.m_curvature < m_maxCosmicCurvature);
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "cut_likelyCRTopology", static_cast<int>(likelyCRTopology)));
+        
+        const bool isCRTagged(std::find(ambiguousPfos.begin(), ambiguousPfos.end(), candidate.m_pPfo) == ambiguousPfos.end());
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "cut_crTagged", static_cast<int>(isCRTagged)));
+
+        PANDORA_MONITORING_API(FillTree(this->GetPandora(), "pfos"));
+    }
+    /* END MONITORING */
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
