@@ -12,6 +12,7 @@
 
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArPfoHelper.h"
+#include "larpandoracontent/LArHelpers/LArMCParticleHelper.h"
 
 #include "larpandoracontent/LArObjects/LArCaloHit.h"
 
@@ -95,7 +96,7 @@ StatusCode CosmicRayTaggingTool::Initialize()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void CosmicRayTaggingTool::FindAmbiguousPfos(const PfoList &parentCosmicRayPfos, PfoList &ambiguousPfos, const MasterAlgorithm *const /*pAlgorithm*/)
+void CosmicRayTaggingTool::FindAmbiguousPfos(const PfoList &parentCosmicRayPfos, PfoList &ambiguousPfos, const MasterAlgorithm *const pAlgorithm)
 {
     if (this->GetPandora().GetSettings()->ShouldDisplayAlgorithmInfo())
         std::cout << "----> Running Algorithm Tool: " << this->GetInstanceName() << ", " << this->GetType() << std::endl;
@@ -162,6 +163,48 @@ void CosmicRayTaggingTool::FindAmbiguousPfos(const PfoList &parentCosmicRayPfos,
     /* BEGIN MONITORING */
     for (const auto &candidate : candidates)
     {
+        // Count the number of hits of each type
+        CaloHitList caloHitListU;
+        LArPfoHelper::GetCaloHits(candidate.m_pPfo, TPC_VIEW_U, caloHitListU);
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "nHitsU", static_cast<int>(caloHitListU.size())));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "nNeutrinoHitsU", static_cast<int>(this->CountNeutrinoHits(caloHitListU))));
+        
+        CaloHitList caloHitListV;
+        LArPfoHelper::GetCaloHits(candidate.m_pPfo, TPC_VIEW_V, caloHitListV);
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "nHitsV", static_cast<int>(caloHitListV.size())));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "nNeutrinoHitsV", static_cast<int>(this->CountNeutrinoHits(caloHitListV))));
+        
+        CaloHitList caloHitListW;
+        LArPfoHelper::GetCaloHits(candidate.m_pPfo, TPC_VIEW_W, caloHitListW);
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "nHitsW", static_cast<int>(caloHitListW.size())));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "nNeutrinoHitsW", static_cast<int>(this->CountNeutrinoHits(caloHitListW))));
+        
+        CaloHitList caloHitList3D;
+        LArPfoHelper::GetCaloHits(candidate.m_pPfo, TPC_3D, caloHitList3D);
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "nHits3D", static_cast<int>(caloHitList3D.size())));
+        
+        // ATTN this is a copy of the logic used to get the min/max X coordinate of the PFOs. I haven't refactored for the sake of speed given this is just validation code
+        float minX(std::numeric_limits<float>::max()), maxX(-std::numeric_limits<float>::max());
+
+        if (candidate.m_canFit)
+        {
+            minX = ((candidate.m_endPoint1.GetX() < candidate.m_endPoint2.GetX()) ? candidate.m_endPoint1.GetX() : candidate.m_endPoint2.GetX());
+            maxX = ((candidate.m_endPoint1.GetX() > candidate.m_endPoint2.GetX()) ? candidate.m_endPoint1.GetX() : candidate.m_endPoint2.GetX());
+        }
+        else
+        {
+            // Handle any particles with small numbers of 3D hits, for which no 3D sliding fit information is available
+            for (const Cluster *const pCluster : candidate.m_pPfo->GetClusterList())
+            {
+                float clusterMinX(std::numeric_limits<float>::max()), clusterMaxX(-std::numeric_limits<float>::max());
+                LArClusterHelper::GetClusterSpanX(pCluster, clusterMinX, clusterMaxX);
+                minX = std::min(clusterMinX, minX);
+                maxX = std::max(clusterMaxX, maxX);
+            }
+        }
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "minX", minX));
+        PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "maxX", maxX));
+
         // NB. Pandora's monitoring API doesn't have option for bool! So here we cast to int
         PANDORA_MONITORING_API(SetTreeVariable(this->GetPandora(), "pfos", "canFit", static_cast<int>(candidate.m_canFit)));
 
@@ -659,6 +702,30 @@ StatusCode CosmicRayTaggingTool::ReadSettings(const TiXmlHandle xmlHandle)
         "MaxCosmicCurvature", m_maxCosmicCurvature));
 
     return STATUS_CODE_SUCCESS;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+unsigned int CosmicRayTaggingTool::CountNeutrinoHits(const CaloHitList &hits) const
+{
+    // Work out how many of these hits come from a neutrino (if we are looking at MC)
+    unsigned int nNeutrinoHits(0);
+    for (const auto &pCaloHit : hits)
+    {
+        try
+        {
+            const MCParticle *const pHitParticle(MCParticleHelper::GetMainMCParticle(pCaloHit));
+            const MCParticle *const pParentParticle(LArMCParticleHelper::GetParentMCParticle(pHitParticle));
+
+            if (LArMCParticleHelper::IsNeutrino(pParentParticle))
+                nNeutrinoHits++;
+        }
+        catch (const StatusCodeException &)
+        {
+        }
+    }
+
+    return nNeutrinoHits;
 }
 
 } // namespace lar_content
