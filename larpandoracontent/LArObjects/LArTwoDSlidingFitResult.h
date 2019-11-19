@@ -409,9 +409,14 @@ private:
     void CheckConfigurationState();
 
     /**
-     *  @brief  Fill the layer fit contribution map
+     *  @brief  Fill the layer fit contribution map from a CartesianPointVector
      */
     void FillLayerFitContributionMap(const pandora::CartesianPointVector &coordinateVector);
+
+    /**
+     *  @brief  Fill the layer fit contribution map from a CaloHitList
+     */
+    void FillLayerFitContributionMap(const pandora::CaloHitList &caloHitList);
 
     /**
      *  @brief  Perform the sliding linear fit

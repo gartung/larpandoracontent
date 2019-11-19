@@ -625,6 +625,21 @@ void TwoDSlidingFitResult::FillLayerFitContributionMap(const CartesianPointVecto
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+void TwoDSlidingFitResult::FillLayerFitContributionMap(const CaloHitList &caloHitList)
+{
+    CheckConfigurationState();
+
+    for (CaloHitList::const_iterator iter = caloHitList.begin(), iterEnd = caloHitList.end(); iter != iterEnd; ++iter)
+    {
+        const CaloHit* hit = (*iter);
+        float rL(0.f), rT(0.f);
+        this->GetLocalPosition(hit->GetPositionVector(), rL, rT);
+        m_layerFitContributionMap[this->GetLayer(rL)].AddPoint(rL, rT, hit->GetElectromagneticEnergy());
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 void TwoDSlidingFitResult::PerformSlidingLinearFit()
 {
     if (!m_layerFitResultMap.empty())
