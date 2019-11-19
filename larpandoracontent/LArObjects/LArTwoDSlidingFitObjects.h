@@ -101,8 +101,9 @@ public:
      *
      *  @param  l the longitudinal coordinate
      *  @param  t the transverse coordinate
+     *  @param edep the energy deposition associated with the point
      */
-    void AddPoint(const float l, const float t);
+    void AddPoint(const float l, const float t, const float edep=1.);
 
     /**
      *  @brief  Get the sum t
@@ -140,6 +141,13 @@ public:
     double GetSumLL() const;
 
     /**
+     *  @brief  Get the sum energy dep.
+     *
+     *  @return the sum energy dep.
+     */
+    double GetSumEDep() const;
+
+    /**
      *  @brief  Get the number of points used
      *
      *  @return the number of points used
@@ -152,6 +160,7 @@ private:
     double          m_sumTT;                                ///< The sum t * t
     double          m_sumLT;                                ///< The sum l * t
     double          m_sumLL;                                ///< The sum l * l
+    double          m_sumEDep;                              ///< The sum energy dep.
     unsigned int    m_nPoints;                              ///< The number of points used
 };
 
@@ -337,22 +346,25 @@ inline LayerFitContribution::LayerFitContribution() :
     m_sumTT(0.),
     m_sumLT(0.),
     m_sumLL(0.),
+    m_sumEDep(0.),
     m_nPoints(0)
 {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-inline void LayerFitContribution::AddPoint(const float l, const float t)
+inline void LayerFitContribution::AddPoint(const float l, const float t, const float edep)
 {
     const double T = static_cast<double>(t);
     const double L = static_cast<double>(l);
+    const double EDep = static_cast<double>(edep);
 
     m_sumT += T;
     m_sumL += L;
     m_sumTT += T * T;
     m_sumLT += L * T;
     m_sumLL += L * L;
+    m_sumEDep += EDep;
     ++m_nPoints;
 }
 
@@ -389,6 +401,13 @@ inline double LayerFitContribution::GetSumLL() const
 inline double LayerFitContribution::GetSumTT() const
 {
     return m_sumTT;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+inline double LayerFitContribution::GetSumEDep() const
+{
+    return m_sumEDep;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
