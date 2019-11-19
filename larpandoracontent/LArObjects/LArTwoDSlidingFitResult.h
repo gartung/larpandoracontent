@@ -395,7 +395,13 @@ private:
     /**
      *  @brief  Calculate the longitudinal and transverse axes
      */
-    void CalculateAxes(const pandora::CartesianPointVector &coordinateVector, const float layerPitch);
+    //void CalculateAxes(const pandora::CartesianPointVector &coordinateVector, const float layerPitch);
+
+    /**
+     *  @brief  Calculate the longitudinal and transverse axes
+     */
+    template <typename T>
+    void CalculateAxes(const T &objectContainer, const float layerPitch);
 
     /**
      *  @brief  Fill the layer fit contribution map

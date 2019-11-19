@@ -9,6 +9,7 @@
 #include "larpandoracontent/LArHelpers/LArClusterHelper.h"
 #include "larpandoracontent/LArHelpers/LArGeometryHelper.h"
 #include "larpandoracontent/LArHelpers/LArPcaHelper.h"
+#include "larpandoracontent/LArHelpers/LArObjectHelper.h"
 
 #include "larpandoracontent/LArObjects/LArTwoDSlidingFitResult.h"
 
@@ -32,7 +33,9 @@ TwoDSlidingFitResult::TwoDSlidingFitResult(const Cluster *const pCluster, const 
 {
     CartesianPointVector pointVector;
     LArClusterHelper::GetCoordinateVector(pCluster, pointVector);
-    this->CalculateAxes(pointVector, layerPitch);
+    CaloHitList caloHitList;
+    LArClusterHelper::GetCaloHitList(pCluster, caloHitList);
+    this->CalculateAxes(caloHitList, layerPitch);
     this->FillLayerFitContributionMap(pointVector);
     this->PerformSlidingLinearFit();
     this->FindSlidingFitSegments();
@@ -552,15 +555,16 @@ const FitSegment &TwoDSlidingFitResult::GetFitSegment(const float rL) const
 // Private member functions start here
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void TwoDSlidingFitResult::CalculateAxes(const CartesianPointVector &coordinateVector, const float layerPitch)
+template <typename T>
+void TwoDSlidingFitResult::CalculateAxes(const T &objectContainer, const float layerPitch)
 {
-    if (coordinateVector.size() < 2)
+    if (objectContainer.size() < 2)
         throw StatusCodeException(STATUS_CODE_INVALID_PARAMETER);
 
     CartesianVector centroid(0.f, 0.f, 0.f);
     LArPcaHelper::EigenVectors eigenVecs;
     LArPcaHelper::EigenValues eigenValues(0.f, 0.f, 0.f);
-    LArPcaHelper::RunPca(coordinateVector, centroid, eigenValues, eigenVecs);
+    LArPcaHelper::RunPca(objectContainer, centroid, eigenValues, eigenVecs);
 
     float minProjection(std::numeric_limits<float>::max());
     CartesianVector fitDirection(eigenVecs.at(0));
@@ -569,8 +573,8 @@ void TwoDSlidingFitResult::CalculateAxes(const CartesianPointVector &coordinateV
     if (fitDirection.GetZ() < 0.f)
         fitDirection *= -1.f;
 
-    for (const CartesianVector &coordinate : coordinateVector)
-        minProjection = std::min(minProjection, fitDirection.GetDotProduct(coordinate - centroid));
+    for (const auto object : objectContainer)
+        minProjection = std::min(minProjection, fitDirection.GetDotProduct(LArObjectHelper::TypeAdaptor::GetPosition(object) - centroid));
 
     // Define layers based on centroid rather than individual extremal hits
     const float fitProjection(layerPitch * std::floor(minProjection / layerPitch));
@@ -582,6 +586,11 @@ void TwoDSlidingFitResult::CalculateAxes(const CartesianPointVector &coordinateV
     CartesianVector yAxis(0.f, 1.f, 0.f);
     m_orthoDirection = yAxis.GetCrossProduct(m_axisDirection).GetUnitVector();
 }
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+template void TwoDSlidingFitResult::CalculateAxes(const CaloHitList &, const float);
+template void TwoDSlidingFitResult::CalculateAxes(const CartesianPointVector &, const float);
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
