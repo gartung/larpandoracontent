@@ -594,7 +594,7 @@ template void TwoDSlidingFitResult::CalculateAxes(const CartesianPointVector &, 
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void TwoDSlidingFitResult::FillLayerFitContributionMap(const CartesianPointVector &coordinateVector)
+void TwoDSlidingFitResult::CheckConfigurationState()
 {
     if (m_layerPitch < std::numeric_limits<float>::epsilon())
         throw StatusCodeException(STATUS_CODE_INVALID_PARAMETER);
@@ -605,6 +605,15 @@ void TwoDSlidingFitResult::FillLayerFitContributionMap(const CartesianPointVecto
 
     if (!m_layerFitContributionMap.empty())
         throw StatusCodeException(STATUS_CODE_FAILURE);
+
+    return;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void TwoDSlidingFitResult::FillLayerFitContributionMap(const CartesianPointVector &coordinateVector)
+{
+    CheckConfigurationState();
 
     for (CartesianPointVector::const_iterator iter = coordinateVector.begin(), iterEnd = coordinateVector.end(); iter != iterEnd; ++iter)
     {

@@ -404,6 +404,11 @@ private:
     void CalculateAxes(const T &objectContainer, const float layerPitch);
 
     /**
+     *  @brief  Check the state of the member variables
+     */
+    void CheckConfigurationState();
+
+    /**
      *  @brief  Fill the layer fit contribution map
      */
     void FillLayerFitContributionMap(const pandora::CartesianPointVector &coordinateVector);
