@@ -535,6 +535,16 @@ StatusCode TwoDSlidingFitResult::GetExtrapolatedPositionAtX(const float x, Carte
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+int TwoDSlidingFitResult::GetLayerFromGlobalPosition(const pandora::CartesianVector &position) const
+{
+   float rL(0.f), rT(0.f);
+   this->GetLocalPosition(position, rL, rT);
+
+   return this->GetLayer(rL);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 const FitSegment &TwoDSlidingFitResult::GetFitSegment(const float rL) const
 {
     int layer(this->GetLayer(rL));

@@ -385,6 +385,15 @@ public:
     pandora::StatusCode GetExtrapolatedPositionAtX(const float x, pandora::CartesianVector &position) const;
 
     /**
+     *  @brief  Get the local layer number from a global position
+     *
+     *  @param  position the input global position
+     *
+     *  @return the local layer number
+     */
+    int GetLayerFromGlobalPosition(const pandora::CartesianVector &position) const;
+
+    /**
      *  @brief Get fit segment for a given longitudinal coordinate
      *
      *  @param  rL the longitudinal coordinate
