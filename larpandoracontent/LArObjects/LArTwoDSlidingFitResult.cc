@@ -31,12 +31,10 @@ TwoDSlidingFitResult::TwoDSlidingFitResult(const Cluster *const pCluster, const 
     m_axisDirection(0.f, 0.f, 0.f),
     m_orthoDirection(0.f, 0.f, 0.f)
 {
-    CartesianPointVector pointVector;
-    LArClusterHelper::GetCoordinateVector(pCluster, pointVector);
     CaloHitList caloHitList;
     LArClusterHelper::GetCaloHitList(pCluster, caloHitList);
     this->CalculateAxes(caloHitList, layerPitch);
-    this->FillLayerFitContributionMap(pointVector);
+    this->FillLayerFitContributionMap(caloHitList);
     this->PerformSlidingLinearFit();
     this->FindSlidingFitSegments();
 }
@@ -634,7 +632,7 @@ void TwoDSlidingFitResult::FillLayerFitContributionMap(const CaloHitList &caloHi
         const CaloHit* hit = (*iter);
         float rL(0.f), rT(0.f);
         this->GetLocalPosition(hit->GetPositionVector(), rL, rT);
-        m_layerFitContributionMap[this->GetLayer(rL)].AddPoint(rL, rT, hit->GetElectromagneticEnergy());
+        m_layerFitContributionMap[this->GetLayer(rL)].AddPoint(rL, rT, hit->GetInputEnergy());
     }
 }
 
